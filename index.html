@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>S3 Compatible, Exascale Object Store for AI | MinIO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:#0d0d0d;color:#fff;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{text-decoration:none;color:inherit}
+img{display:block;max-width:100%}
+
+/* ANNOUNCEMENT BAR */
+.ann-bar{background:#111;border-bottom:1px solid #222;padding:10px 48px;display:flex;align-items:center;justify-content:center;gap:32px;position:relative;min-height:44px}
+.ann-item{display:flex;align-items:center;gap:8px;font-size:13px;color:#bbb;white-space:nowrap}
+.ann-item img{width:16px;height:16px;flex-shrink:0}
+.ann-item a{color:#e25c5c;font-weight:500;margin-left:4px}
+.ann-item a:hover{text-decoration:underline}
+.ann-close{position:absolute;right:20px;top:50%;transform:translateY(-50%);cursor:pointer;opacity:.5;background:none;border:none;display:flex;align-items:center}
+.ann-close:hover{opacity:1}
+.ann-close img{width:16px;height:16px}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:1000;background:rgba(13,13,13,.96);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid #1e1e1e;padding:0 32px;height:64px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+.nav-logo img{height:26px}
+.nav-links{display:flex;align-items:center;gap:2px;list-style:none}
+.nav-links>li>a,.nav-links>li>button{font-size:14px;color:#bbb;padding:8px 12px;border-radius:6px;display:inline-flex;align-items:center;gap:5px;cursor:pointer;transition:color .2s,background .2s;font-weight:500;background:none;border:none;font-family:inherit}
+.nav-links>li>a:hover,.nav-links>li>button:hover{color:#fff;background:#1c1c1c}
+.nav-links>li>button img,.nav-links>li>a img{width:11px;opacity:.5;flex-shrink:0}
+.nav-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.btn-support{font-size:13px;color:#bbb;padding:7px 14px;border:1px solid #2e2e2e;border-radius:6px;display:inline-flex;align-items:center;gap:5px;transition:all .2s;font-weight:500}
+.btn-support:hover{border-color:#555;color:#fff}
+.btn-support img{width:11px;opacity:.5}
+.btn-dl{background:#c72026;color:#fff;font-size:13px;font-weight:600;padding:8px 18px;border-radius:6px;transition:background .2s;white-space:nowrap}
+.btn-dl:hover{background:#a81a1f}
+
+/* HERO */
+.hero{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;text-align:center;overflow:hidden;padding:96px 24px 0;min-height:100vh}
+.hero-video-wrap{position:absolute;inset:0;z-index:0;overflow:hidden}
+.hero-video-wrap video{width:100%;height:100%;object-fit:cover;opacity:.3}
+.hero-video-wrap::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,13,13,.55) 0%,rgba(13,13,13,.2) 40%,rgba(13,13,13,.95) 100%)}
+.hero-content{position:relative;z-index:1;max-width:860px}
+.hero-content h1{font-size:clamp(3rem,6.5vw,5.2rem);font-weight:700;line-height:1.08;letter-spacing:-.03em;margin-bottom:20px}
+.hero-content p{font-size:clamp(1rem,1.8vw,1.15rem);color:#999;max-width:640px;margin:0 auto 36px;line-height:1.7;font-weight:400}
+.hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.hero-btns .btn-primary{background:#c72026;color:#fff;font-size:15px;font-weight:600;padding:12px 32px;border-radius:7px;transition:background .2s}
+.hero-btns .btn-primary:hover{background:#a81a1f}
+.hero-btns .btn-ghost{font-size:15px;font-weight:500;padding:12px 32px;border-radius:7px;border:1px solid #3a3a3a;color:#ccc;transition:all .2s}
+.hero-btns .btn-ghost:hover{border-color:#666;color:#fff}
+.hero-dash{position:relative;z-index:1;margin-top:60px;width:100%;max-width:1120px}
+.hero-dash img{width:100%;border-radius:14px;border:1px solid #222;box-shadow:0 48px 140px rgba(0,0,0,.85),0 0 0 1px rgba(255,255,255,.04)}
+
+/* LOGOS */
+.logos-strip{padding:44px 0;border-top:1px solid #1a1a1a;border-bottom:1px solid #1a1a1a;background:#0d0d0d;overflow:hidden;position:relative}
+.logos-track{display:flex;gap:64px;animation:slide 32s linear infinite;width:max-content;align-items:center}
+.logos-track:hover{animation-play-state:paused}
+@keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.logos-track img{height:20px;filter:brightness(0) invert(1);opacity:.35;flex-shrink:0;transition:opacity .25s}
+.logos-track img:hover{opacity:.7}
+.fade-l,.fade-r{position:absolute;top:0;bottom:0;width:100px;z-index:2;pointer-events:none}
+.fade-l{left:0;background:linear-gradient(to right,#0d0d0d,transparent)}
+.fade-r{right:0;background:linear-gradient(to left,#0d0d0d,transparent)}
+
+/* SECTION */
+section{padding:96px 0}
+.container{max-width:1160px;margin:0 auto;padding:0 32px}
+.sec-eyebrow{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#c72026;margin-bottom:12px;display:block}
+h2.sec-h2{font-size:clamp(1.9rem,3.8vw,2.75rem);font-weight:700;letter-spacing:-.025em;line-height:1.15;margin-bottom:14px}
+p.sec-p{font-size:.97rem;color:#777;line-height:1.72;max-width:560px;font-weight:400}
+
+/* NEWS */
+.news-bg{background:#0d0d0d}
+.news-label{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#666;margin-bottom:18px;display:block}
+.news-box{background:#111;border:1px solid #1e1e1e;border-radius:12px;padding:36px 40px;max-width:760px}
+.news-box h3{font-size:1.3rem;font-weight:600;line-height:1.4;margin-bottom:10px}
+.news-box p{font-size:.9rem;color:#777;line-height:1.7;margin-bottom:18px}
+.news-box .learn{color:#e25c5c;font-size:.88rem;font-weight:500}
+.news-box .learn:hover{text-decoration:underline}
+
+/* ADVANTAGE */
+.adv-bg{background:#0a0a0a}
+.adv-grid{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:start;margin-top:56px}
+.adv-tabs-wrap{}
+.adv-tab{border-bottom:1px solid #1c1c1c;padding:20px 0;cursor:pointer}
+.adv-tab h4{font-size:1rem;font-weight:600;color:#666;transition:color .2s}
+.adv-tab.active h4{color:#fff}
+.adv-tab-body{font-size:.87rem;color:#666;line-height:1.65;overflow:hidden;max-height:0;transition:max-height .45s ease,margin-top .3s,opacity .3s;opacity:0;margin-top:0}
+.adv-tab.active .adv-tab-body{max-height:180px;opacity:1;margin-top:10px}
+.adv-preview{border-radius:12px;overflow:hidden;border:1px solid #1e1e1e;position:sticky;top:80px}
+.adv-preview img{width:100%;display:block}
+
+/* METRICS */
+.metrics-section{background:#0d0d0d}
+.big-speed{background:#111;border:1px solid #1e1e1e;border-radius:12px;padding:36px;display:flex;align-items:center;gap:28px;margin-bottom:28px;flex-wrap:wrap}
+.big-speed-icon{width:52px;height:52px;flex-shrink:0}
+.big-speed-label{font-size:.75rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#777;margin-bottom:4px}
+.big-speed-val{font-size:2.6rem;font-weight:700;color:#c72026;letter-spacing:-.03em;line-height:1}
+.big-speed-desc{font-size:.85rem;color:#666;margin-top:8px;line-height:1.55;max-width:500px}
+.metric-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.m-card{background:#111;border:1px solid #1e1e1e;border-radius:10px;padding:24px;transition:border-color .2s}
+.m-card:hover{border-color:#333}
+.m-card img{width:28px;height:28px;margin-bottom:12px}
+.m-card-title{font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:6px}
+.m-card-desc{font-size:.82rem;color:#666;line-height:1.55}
+.m-card.wide{grid-column:span 2}
+
+/* STATS TICKER */
+.ticker{overflow:hidden;border-top:1px solid #1a1a1a;border-bottom:1px solid #1a1a1a;padding:52px 0;background:#080808}
+.ticker-track{display:flex;gap:72px;animation:ticker-move 28s linear infinite;width:max-content;align-items:center}
+@keyframes ticker-move{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.t-stat{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0}
+.t-num{font-size:2.6rem;font-weight:700;letter-spacing:-.03em;color:#fff}
+.t-lbl{font-size:.78rem;color:#555;white-space:nowrap}
+.t-sep{color:#222;font-size:2.5rem;align-self:center;flex-shrink:0}
+
+/* USE CASES */
+.uc-bg{background:#0d0d0d}
+.uc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:48px}
+.uc-card{background:#111;border:1px solid #1e1e1e;border-radius:12px;overflow:hidden;transition:border-color .25s,transform .25s;cursor:pointer}
+.uc-card:hover{border-color:#3a3a3a;transform:translateY(-4px)}
+.uc-card img.uc-thumb{width:100%;height:200px;object-fit:cover}
+.uc-body{padding:24px}
+.uc-body .uc-ico{width:22px;height:22px;margin-bottom:10px}
+.uc-body h3{font-size:1rem;font-weight:600;margin-bottom:8px;color:#fff}
+.uc-body p{font-size:.83rem;color:#777;line-height:1.62}
+.uc-learn{display:inline-flex;align-items:center;gap:5px;font-size:.82rem;color:#e25c5c;font-weight:500;margin-top:14px}
+.uc-learn img{width:13px}
+
+/* WORLD'S MOST */
+.world-bg{background:#090909;border-top:1px solid #1a1a1a}
+.world-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#1c1c1c;border:1px solid #1c1c1c;border-radius:12px;overflow:hidden;margin-top:48px}
+.ws-item{background:#090909;padding:40px 28px;text-align:center}
+.ws-val{font-size:2.4rem;font-weight:700;color:#c72026;line-height:1}
+.ws-unit{font-size:1.2rem}
+.ws-lbl{font-size:.83rem;color:#555;margin-top:6px;line-height:1.4}
+
+/* GET STARTED */
+.gs-section{background:#0a0a0a;border-top:1px solid #1a1a1a;text-align:center;padding:80px 0}
+.gs-section p.sub{font-size:.8rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#555;margin-bottom:16px}
+.gs-section img.gs-logo{height:38px;margin:0 auto 24px}
+.gs-dl{background:#c72026;color:#fff;font-size:15px;font-weight:600;padding:13px 40px;border-radius:7px;display:inline-block;transition:background .2s}
+.gs-dl:hover{background:#a81a1f}
+
+/* FOOTER */
+footer{background:#070707;border-top:1px solid #1a1a1a;padding:60px 0 28px}
+.ft-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1.2fr;gap:44px;margin-bottom:48px}
+.ft-col .ft-ex{font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#444;margin-bottom:4px}
+.ft-col .ft-sec{font-size:.82rem;font-weight:600;color:#666;margin-bottom:10px;margin-top:14px}
+.ft-col ul{list-style:none;display:flex;flex-direction:column;gap:7px}
+.ft-col ul a{font-size:.83rem;color:#555;transition:color .2s}
+.ft-col ul a:hover{color:#aaa}
+.ft-socials{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.ft-socials a img{width:34px;height:34px;opacity:.6;transition:opacity .2s}
+.ft-socials a:hover img{opacity:1}
+.ft-nl p{font-size:.81rem;color:#555;line-height:1.55;max-width:256px;margin-top:14px}
+.ft-nl-row{display:flex;gap:8px;margin-top:10px}
+.ft-nl-row input{background:#111;border:1px solid #252525;border-radius:6px;padding:9px 13px;color:#fff;font-size:12.5px;outline:none;flex:1;font-family:inherit;min-width:0}
+.ft-nl-row input::placeholder{color:#444}
+.ft-nl-row input:focus{border-color:#3a3a3a}
+.ft-nl-row button{background:#c72026;color:#fff;border:none;border-radius:6px;padding:9px 14px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .2s;white-space:nowrap}
+.ft-nl-row button:hover{background:#a81a1f}
+.ft-bottom{display:flex;justify-content:space-between;align-items:center;padding-top:24px;border-top:1px solid #1a1a1a;flex-wrap:wrap;gap:14px}
+.ft-bottom img.ft-logo{height:20px;opacity:.55}
+.ft-copy{font-size:.78rem;color:#444}
+.ft-addr a{font-size:.78rem;color:#444;margin-top:3px;display:block}
+.ft-addr a:hover{color:#777}
+.ft-soc{height:44px;opacity:.45}
+
+/* RESPONSIVE */
+@media(max-width:1000px){
+  .adv-grid{grid-template-columns:1fr}
+  .adv-preview{position:relative;top:0}
+  .metric-cards{grid-template-columns:1fr 1fr}
+  .m-card.wide{grid-column:span 1}
+  .uc-grid{grid-template-columns:1fr}
+  .world-stats{grid-template-columns:1fr 1fr}
+  .ft-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:680px){
+  nav .nav-links{display:none}
+  .ann-bar{padding:10px 44px 10px 16px;flex-direction:column;gap:6px}
+  .ann-item{white-space:normal;font-size:12px;justify-content:center;text-align:center}
+  .hero-content h1{font-size:2.6rem}
+  .metric-cards{grid-template-columns:1fr}
+  .world-stats{grid-template-columns:1fr 1fr}
+  .ft-grid{grid-template-columns:1fr}
+  h2.sec-h2{font-size:1.75rem}
+}
+</style>
+</head>
+<body>
+
+<!-- ANNOUNCEMENT BAR -->
+<div class="ann-bar" id="annBar">
+  <div class="ann-item">
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/686d04872b1d4b6b7f98bfaa_icon%20(15).svg" alt=""/>
+    MinIO AIStor Brings Object Data Stores for the NVIDIA STX Reference Architecture
+    <a href="http://www.min.io/press/minio-aistor-nvidia-stx-ai-factory">Learn More</a>
+  </div>
+  <button class="ann-close" onclick="document.getElementById('annBar').style.display='none'" aria-label="Close">
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d4328cb67c157c28c67953_close-line.svg" alt=""/>
+  </button>
+</div>
+
+<!-- NAVBAR -->
+<nav id="navbar">
+  <a href="index.html" class="nav-logo">
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/681c8426519d8db8f867c1f7_MinIO.svg" alt="MinIO"/>
+  </a>
+  <ul class="nav-links">
+    <li><button>Product <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/691b570840eabfe8f2d78765_chevron-down-white.svg" alt="▾"/></button></li>
+    <li><button>Use Cases <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/691b570840eabfe8f2d78765_chevron-down-white.svg" alt="▾"/></button></li>
+    <li><button>Resources <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/691b570840eabfe8f2d78765_chevron-down-white.svg" alt="▾"/></button></li>
+    <li><a href="partners.html">Partners <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/691b570840eabfe8f2d78765_chevron-down-white.svg" alt="▾"/></a></li>
+    <li><button>Community</button></li>
+    <li><a href="pricing.html">Pricing</a></li>
+  </ul>
+  <div class="nav-right">
+    <a href="https://subnet.min.io/" class="btn-support">Support <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/691b57a302dff4280a76d3ac_arrow-up-right-white.svg" alt=""/></a>
+    <a href="https://www.min.io/download" class="btn-dl">Download</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-video-wrap">
+    <video autoplay muted loop playsinline>
+      <source src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d11caf9cba7a307e08800e_min-com-hero-bg-2-compressed-transcode.mp4" type="video/mp4"/>
+    </video>
+  </div>
+  <div class="hero-content" id="heroContent">
+    <h1>Exascale AI Data Store</h1>
+    <p>MinIO AIStor delivers unmatched enterprise performance, scale, agility and economics for AI data, agentic computing, and analytics.</p>
+    <div class="hero-btns">
+      <a href="https://www.min.io/download" class="btn-primary">Download</a>
+      <a href="https://www.min.io/contact-us" class="btn-ghost">Contact Us</a>
+    </div>
+  </div>
+  <div class="hero-dash" id="heroDash">
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/6939c61e82d114a48f0315f9_Dashboard-new.avif" alt="MinIO Dashboard"/>
+  </div>
+</section>
+
+<!-- LOGOS -->
+<div class="logos-strip">
+  <div class="fade-l"></div>
+  <div class="fade-r"></div>
+  <div class="logos-track">
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d3cbf106e1aa0dd5e5e105_logo-vw-black.svg" alt="VW" height="20"/>
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d3cbebc50a0bf22ede1ced_Verizon_bw.svg" alt="Verizon" height="20"/>
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d3cbadc571cbc7555af9fd_Intel_bw.svg" alt="Intel" height="20"/>
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d3cb9fd6607840c3da23c7_logo-home-depot-black.svg" alt="Home Depot" height="20"/>
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d3cbbea73e81e9d375695b_logo-mastercard-black.svg" alt="Mastercard" height="20"/>
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d3cb3f55697e879d5ab15d_AMD_bw.svg" alt="AMD" height="20"/>
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d3cbd22e7033c0da341c19_Salesforce_bw.svg" alt="Salesforce" height="20"/>
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d3cbcaaf745e3771f31cc8_logo-paypal-black.svg" alt="PayPal" height="20"/>
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d3cbc637757741d61e34bb_Palantir_bw.svg" alt="Palantir" height="20"/>
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d3cb88e6f34779797ff97b_Disney%20_bw.svg" alt="Disney" height="20"/>
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d3cb6861f1bf011722f399_Broadcom_bw.svg" alt="Broadcom" height="20"/>
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d3cb587cf9c6635a6f81a9_AT%20T_bw.svg" alt="AT&T" height="20"/>
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d3cb82c46b02d300625b1b_Comcast_bw.svg" alt="Comcast" height="20"/>
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d3cbe6e86bf53a5c413eb0_US%20Air%20Force_bw.svg" alt="US Air Force" height="20"/>
+    <!-- dup for seamless -->
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d3cbf106e1aa0dd5e5e105_logo-vw-black.svg" alt="VW" height="20"/>
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d3cbebc50a0bf22ede1ced_Verizon_bw.svg" alt="Verizon" height="20"/>
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d3cbadc571cbc7555af9fd_Intel_bw.svg" alt="Intel" height="20"/>
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d3cb9fd6607840c3da23c7_logo-home-depot-black.svg" alt="Home Depot" height="20"/>
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d3cbbea73e81e9d375695b_logo-mastercard-black.svg" alt="Mastercard" height="20"/>
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d3cb3f55697e879d5ab15d_AMD_bw.svg" alt="AMD" height="20"/>
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d3cbd22e7033c0da341c19_Salesforce_bw.svg" alt="Salesforce" height="20"/>
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d3cbcaaf745e3771f31cc8_logo-paypal-black.svg" alt="PayPal" height="20"/>
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d3cbc637757741d61e34bb_Palantir_bw.svg" alt="Palantir" height="20"/>
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d3cb88e6f34779797ff97b_Disney%20_bw.svg" alt="Disney" height="20"/>
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d3cb6861f1bf011722f399_Broadcom_bw.svg" alt="Broadcom" height="20"/>
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d3cb587cf9c6635a6f81a9_AT%20T_bw.svg" alt="AT&T" height="20"/>
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d3cb82c46b02d300625b1b_Comcast_bw.svg" alt="Comcast" height="20"/>
+    <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d3cbe6e86bf53a5c413eb0_US%20Air%20Force_bw.svg" alt="US Air Force" height="20"/>
+  </div>
+</div>
+
+<!-- IN THE NEWS -->
+<section class="news-bg">
+  <div class="container">
+    <span class="sec-eyebrow">Exascale AI Runs on MinIO</span>
+    <h2 class="sec-h2">Trusted by the World's Most Demanding<br/>Data-Driven Organizations</h2>
+    <br/><br/>
+    <span class="news-label">IN THE NEWS</span>
+    <div class="news-box">
+      <h3>MinIO AIStor Brings Object Data Stores for the NVIDIA STX Reference Architecture</h3>
+      <p>AIStor provides a unified data foundation for NVIDIA® STX®, accelerating training, enterprise RAG, and real-time agentic inference throughout the AI lifecycle</p>
+      <a href="https://www.min.io/partners/nvidia" class="learn">Learn More →</a>
+    </div>
+  </div>
+</section>
+
+<!-- AISTOR ADVANTAGE -->
+<section class="adv-bg">
+  <div class="container">
+    <span class="sec-eyebrow">The MinIO AIStor Advantage</span>
+    <h2 class="sec-h2">AIStor delivers cloud-native object storage that scales infinitely,<br/>simplifies operations, and accelerates AI and analytics workloads<br/>without compromise.</h2>
+    <div class="adv-grid">
+      <div class="adv-tabs-wrap" id="advTabs">
+        <div class="adv-tab active" data-img="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68fa0c953d17bfd7a2833f6e_68d2bb7261532a66734ea709_aistor-scalability.avif">
+          <h4>Limitless Scalability</h4>
+          <div class="adv-tab-body">AIStor eliminates the 20-30 petabyte walls that plague traditional storage systems. Our distributed architecture scales seamlessly across clusters, data centers, and clouds—supporting exabyte-scale deployments with a single namespace.</div>
+        </div>
+        <div class="adv-tab" data-img="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d2bb614684b2dd09007a8a_aistor-performance.avif">
+          <h4>Unmatched Performance</h4>
+          <div class="adv-tab-body">Built from the ground up as high-performance object storage, AIStor delivers native S3 compatibility with consistent sub-10ms latency. No legacy bottlenecks, no gateway overhead—just pure, scalable performance designed for modern workloads.</div>
+        </div>
+        <div class="adv-tab" data-img="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d2bb4ffad0ba6a922c812a_aistor-operations.png">
+          <h4>Zero-Touch Operations</h4>
+          <div class="adv-tab-body">AIStor's self-healing, self-managing architecture eliminates the operational complexity that drains your team's resources. Automated data protection, intelligent load balancing, and simplified management let you focus on innovation, not infrastructure firefighting.</div>
+        </div>
+        <div class="adv-tab" data-img="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d2bb2972b5e54bd91a13ef_aistor-utilization.png">
+          <h4>Maximum GPU Utilization</h4>
+          <div class="adv-tab-body">MinIO's streamlined architecture eliminates metadata bloat and POSIX overhead that starve your GPUs. Deliver maximum throughput to your AI training and inference workloads, ensuring every dollar of your infrastructure investment delivers results.</div>
+        </div>
+        <div class="adv-tab" data-img="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d2bb191a4aeff1788cdd64_aistor-reliability.png">
+          <h4>Enterprise-Grade Reliability</h4>
+          <div class="adv-tab-body">Built for mission-critical workloads with 99.999999999% (11 9's) data durability, comprehensive security controls, and global replication. MinIO powers the world's largest AI initiatives with confidence.</div>
+        </div>
+      </div>
+      <div class="adv-preview">
+        <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68fa0c953d17bfd7a2833f6e_68d2bb7261532a66734ea709_aistor-scalability.avif" alt="" id="advImg"/>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- AI LEADERS / METRICS -->
+<section class="metrics-section">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:56px">
+      <h2 class="sec-h2">AI Leaders Run on AIStor</h2>
+      <p class="sec-p" style="margin:0 auto 28px">Unify and future-proof your enterprise AI data infrastructure with AIStor's object-native, software-defined architecture. Build for the exascale era.</p>
+      <div style="display:flex;gap:12px;justify-content:center">
+        <a href="https://www.min.io/download" class="btn-dl">Download</a>
+        <a href="https://www.min.io/contact-us" style="background:transparent;color:#ccc;font-size:14px;font-weight:500;padding:8px 28px;border-radius:7px;border:1px solid #333;transition:all .2s">Contact Us</a>
+      </div>
+    </div>
+    <div class="big-speed">
+      <img class="big-speed-icon" src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d12144ce3ab6e3d8601e9c_Icon%20(17).svg" alt=""/>
+      <div>
+        <div class="big-speed-label">Warp speed</div>
+        <div class="big-speed-val">19.2 TiB/s</div>
+        <div class="big-speed-desc">Saturates any hardware, from drive IOPS to network throughput. Delivers unprecedented throughput at exabyte scale with zero bottlenecks.</div>
+      </div>
+    </div>
+    <div class="metric-cards">
+      <div class="m-card">
+        <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d4b96a30bcebe94cf842f6_Icon-scale.svg" alt=""/>
+        <div class="m-card-title">Exabyte scale</div>
+        <div class="m-card-desc">Frictionless growth in a single flat namespace.</div>
+      </div>
+      <div class="m-card">
+        <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d4b974ffaa0338fade146c_Icon-TCO.svg" alt=""/>
+        <div class="m-card-title">40% lower TCO</div>
+        <div class="m-card-desc">Best-in-class unit economics.</div>
+      </div>
+      <div class="m-card">
+        <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d4b97d3d089f726d01cad1_Icon-support.svg" alt=""/>
+        <div class="m-card-title">24x7x365</div>
+        <div class="m-card-desc">Proactive support.</div>
+      </div>
+      <div class="m-card">
+        <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d4b9893a71890062e94167_Icon-zero-lock-in.svg" alt=""/>
+        <div class="m-card-title">Zero lock-in</div>
+        <div class="m-card-desc">Edge to core to cloud.</div>
+      </div>
+      <div class="m-card wide">
+        <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68d4b9955049d30ab44a3efe_Icon-ai-ecosystem.svg" alt=""/>
+        <div class="m-card-title">Deepest AI ecosystem</div>
+        <div class="m-card-desc">Native integration with PyTorch, Iceberg, and every major AI framework. The richest S3 API support on the planet.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker">
+  <div class="ticker-track">
+    <div class="t-stat"><span class="t-num">77%</span><span class="t-lbl">of the Fortune 500 use MinIO</span></div>
+    <span class="t-sep">·</span>
+    <div class="t-stat"><span class="t-num">9/10</span><span class="t-lbl">of the largest automotive companies use MinIO</span></div>
+    <span class="t-sep">·</span>
+    <div class="t-stat"><span class="t-num">10/10</span><span class="t-lbl">of the largest US banks use MinIO</span></div>
+    <span class="t-sep">·</span>
+    <div class="t-stat"><span class="t-num">8/10</span><span class="t-lbl">of the largest US retailers use MinIO</span></div>
+    <span class="t-sep">·</span>
+    <div class="t-stat"><span class="t-num">77%</span><span class="t-lbl">of the Fortune 500 use MinIO</span></div>
+    <span class="t-sep">·</span>
+    <div class="t-stat"><span class="t-num">9/10</span><span class="t-lbl">of the largest automotive companies use MinIO</span></div>
+    <span class="t-sep">·</span>
+    <div class="t-stat"><span class="t-num">10/10</span><span class="t-lbl">of the largest US banks use MinIO</span></div>
+    <span class="t-sep">·</span>
+    <div class="t-stat"><span class="t-num">8/10</span><span class="t-lbl">of the largest US retailers use MinIO</span></div>
+    <span class="t-sep">·</span>
+  </div>
+</div>
+
+<!-- USE CASES -->
+<section class="uc-bg">
+  <div class="container">
+    <span class="sec-eyebrow">Our solution</span>
+    <h2 class="sec-h2">Build AI-Powered Applications Without Limits</h2>
+    <p class="sec-p">From massive models to exabyte-scale training and inference data, AIStor delivers the performance, consistency, and freedom to grow with your ambitions.</p>
+    <div class="uc-grid">
+      <a href="https://www.min.io/use-cases/ai-training" class="uc-card">
+        <img class="uc-thumb" src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68cc5a520178f90a23c85680_Card%20(1).png" alt="AI Training"/>
+        <div class="uc-body">
+          <img class="uc-ico" src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68de99d559e06fc918a263c6_ai-icon.svg" alt=""/>
+          <h3>AI Training</h3>
+          <p>AIStor delivers high-performance, S3-compatible object storage purpose-built for AI training at scale.</p>
+          <span class="uc-learn">Learn more <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/691c56af261f491f9ab58143_arrow-right.svg" alt=""/></span>
+        </div>
+      </a>
+      <a href="https://www.min.io/use-cases/financial-transactions" class="uc-card">
+        <img class="uc-thumb" src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68cc5e27c6e96f72e1d00d10_card-3.png" alt="Financial Transactions"/>
+        <div class="uc-body">
+          <img class="uc-ico" src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/69a7541b7a775ed8532c14f7_swtich-horizontal-icon.svg" alt=""/>
+          <h3>Financial Transactions</h3>
+          <p>AIStor consolidates scattered transaction data into a single, high-performance platform—eliminating silos, redundant copies, and integration complexity.</p>
+          <span class="uc-learn">Learn more <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/691c56af261f491f9ab58143_arrow-right.svg" alt=""/></span>
+        </div>
+      </a>
+      <a href="https://www.min.io/use-cases/industrial-operational-technology" class="uc-card">
+        <img class="uc-thumb" src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/68cc5e2833f1c84e21cf1561_card-2.png" alt="Operational Technology"/>
+        <div class="uc-body">
+          <img class="uc-ico" src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/69a75567d8713f4e075ef124_circuit-board-icon.svg" alt=""/>
+          <h3>Operational Technology</h3>
+          <p>AIStor centralizes and analyzes 2-3× more industrial data for the same cost, from edge to enterprise.</p>
+          <span class="uc-learn">Learn more <img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/691c56af261f491f9ab58143_arrow-right.svg" alt=""/></span>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- WORLD'S MOST ADOPTED -->
+<section class="world-bg" style="padding:80px 0">
+  <div class="container" style="text-align:center">
+    <h2 class="sec-h2">The World's Most Adopted Object Store</h2>
+    <div class="world-stats">
+      <div class="ws-item"><div class="ws-val">2B<span class="ws-unit">+</span></div><div class="ws-lbl">Downloads</div></div>
+      <div class="ws-item"><div class="ws-val">53.3K<span class="ws-unit">+</span></div><div class="ws-lbl">GitHub Stars</div></div>
+      <div class="ws-item"><div class="ws-val">32.9K<span class="ws-unit">+</span></div><div class="ws-lbl">Community Members</div></div>
+      <div class="ws-item"><div class="ws-val">1.4K<span class="ws-unit">+</span></div><div class="ws-lbl">Developers</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- GET STARTED -->
+<section class="gs-section">
+  <div class="container">
+    <p class="sub">Get started using</p>
+    <img class="gs-logo" src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/682b7b03672a5ed7dcb77284_aistor.svg" alt="AIStor"/>
+    <a href="https://www.min.io/download" class="gs-dl">Download</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="ft-grid">
+      <div class="ft-col">
+        <div class="ft-ex">Explore</div>
+        <div class="ft-sec">Product</div>
+        <ul>
+          <li><a href="https://www.min.io/product/aistor">AIStor Overview</a></li>
+          <li><a href="https://www.min.io/download">AIStor Download</a></li>
+          <li><a href="pricing.html">Pricing</a></li>
+          <li><a href="https://www.min.io/compliance">Compliance</a></li>
+          <li><a href="https://subnet.min.io/">Support</a></li>
+        </ul>
+      </div>
+      <div class="ft-col">
+        <div class="ft-ex">Explore</div>
+        <div class="ft-sec">Resources</div>
+        <ul>
+          <li><a href="https://resources.min.io/l/library">Resource Library</a></li>
+          <li><a href="https://github.com/minio/">Community</a></li>
+          <li><a href="https://blog.min.io/">Blog</a></li>
+          <li><a href="https://docs.min.io/enterprise/aistor-object-store/">Docs</a></li>
+          <li><a href="https://www.min.io/training">Training</a></li>
+          <li><a href="https://www.min.io/learn">Learning Center</a></li>
+          <li><a href="https://www.min.io/customer-success">Customer Stories</a></li>
+        </ul>
+      </div>
+      <div class="ft-col">
+        <div class="ft-ex">Explore</div>
+        <div class="ft-sec">Company</div>
+        <ul>
+          <li><a href="https://www.min.io/about">About</a></li>
+          <li><a href="https://www.min.io/events">Events</a></li>
+          <li><a href="https://www.min.io/careers">Careers</a></li>
+          <li><a href="https://www.min.io/logo">Brand Guidelines</a></li>
+          <li><a href="https://www.min.io/legal">Legal</a></li>
+          <li><a href="https://www.min.io/contact-us">Contact Us</a></li>
+        </ul>
+      </div>
+      <div class="ft-col">
+        <div class="ft-ex">Get in Touch</div>
+        <div class="ft-socials">
+          <a href="https://www.youtube.com/c/MINIO"><img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/681c8426519d8db8f867c203_Frame%20411.svg" alt="YouTube"/></a>
+          <a href="https://www.linkedin.com/company/minio-inc-/"><img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/681c8426519d8db8f867c201_Frame%20413.svg" alt="LinkedIn"/></a>
+          <a href="https://x.com/Minio"><img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/681c8426519d8db8f867c204_Frame%20414.svg" alt="X"/></a>
+          <a href="https://github.com/minio/"><img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/681c8426519d8db8f867c202_Frame%20412.svg" alt="GitHub"/></a>
+          <a href="https://www.min.io/contact-us"><img src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/686561e78d4fc20865c891be_Frame%20415.svg" alt="Contact"/></a>
+        </div>
+        <div class="ft-nl">
+          <p>Get MinIO updates and expert insights on building high-performance, cloud-native object storage that scales with your AI and data needs.</p>
+          <div class="ft-nl-row">
+            <input type="email" placeholder="Your email address"/>
+            <button type="button">Subscribe</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ft-bottom">
+      <a href="index.html"><img class="ft-logo" src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/681c8426519d8db8f867c1f7_MinIO.svg" alt="MinIO"/></a>
+      <div>
+        <div class="ft-copy">© 2014-2026 MinIO, Inc.</div>
+        <div class="ft-addr"><a href="https://www.min.io/contact-us">Contact Us</a> · 275 Shoreline Dr, Ste 100, Redwood City, CA 94065, United States</div>
+      </div>
+      <img class="ft-soc" src="https://cdn.prod.website-files.com/681c8426519d8db8f867c1e8/681c8426519d8db8f867c205_soc.avif" alt="SOC"/>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script>
+// Advantage tabs
+document.querySelectorAll('.adv-tab').forEach(function(tab){
+  tab.addEventListener('click',function(){
+    document.querySelectorAll('.adv-tab').forEach(function(t){t.classList.remove('active')});
+    tab.classList.add('active');
+    var img=document.getElementById('advImg');
+    gsap.to(img,{opacity:0,duration:.18,onComplete:function(){
+      img.src=tab.dataset.img;
+      gsap.to(img,{opacity:1,duration:.28});
+    }});
+  });
+});
+// Hero anim
+if(typeof gsap!=='undefined'){
+  gsap.from('#heroContent',{opacity:0,y:48,duration:1,ease:'power3.out'});
+  gsap.from('#heroDash',{opacity:0,y:72,duration:1.2,delay:.25,ease:'power3.out'});
+}
+</script>
+</body>
+</html>
